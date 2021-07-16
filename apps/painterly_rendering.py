@@ -191,9 +191,11 @@ def main(args):
                 group.fill_color.data.clamp_(0.0, 1.0)
         else:
             for group in shape_groups:
-                group.stroke_color.data.clamp_(0.0, 1.0)
+                #group.stroke_color.data.clamp_(0.0, 1.0)
                 #Limit the opactiy
                 group.stroke_color.data[3].clamp_(1.0, 1.0)
+                # Limit Color to black only
+                #group.stroke_color.data[0:3].clamp_(0.0, 0.0)
 
         if t % 10 == 0 or t == args.num_iter - 1:
             pydiffvg.save_svg('results/painterly_rendering/iter_{}.svg'.format(t),
