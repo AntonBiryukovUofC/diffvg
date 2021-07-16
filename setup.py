@@ -14,11 +14,13 @@ from setuptools.command.install import install
 from distutils.sysconfig import get_config_var
 from distutils.version import LooseVersion
 
+
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir, build_with_cuda):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
         self.build_with_cuda = build_with_cuda
+
 
 class Build(build_ext):
     def run(self):
@@ -36,7 +38,8 @@ class Build(build_ext):
             info = get_paths()
             include_path = info['include']
             cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                          '-DPYTHON_INCLUDE_PATH=' + include_path]
+                          '-DPYTHON_INCLUDE_PATH=' + include_path,
+                          ]
 
             cfg = 'Debug' if self.debug else 'Release'
             build_args = ['--config', cfg]
@@ -44,7 +47,7 @@ class Build(build_ext):
             if platform.system() == "Windows":
                 cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir),
                                '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir)]
-                if sys.maxsize > 2**32:
+                if sys.maxsize > 2 ** 32:
                     cmake_args += ['-A', 'x64']
                 build_args += ['--', '/m']
             else:
@@ -59,12 +62,21 @@ class Build(build_ext):
             env = os.environ.copy()
             env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(env.get('CXXFLAGS', ''),
                                                                   self.distribution.get_version())
+            env_build = env
+            env["CXX"] = "/usr/bin/g++-5"
+            env["CC"] = "/usr/bin/gcc-5"
+            env_build["CXX"] = "/usr/bin/g++-5"
+            env_build["CC"] = "/usr/bin/gcc-5"
+            env["PATH"] = "/usr/local/cuda-10.1/bin" + ":" + os.environ['PATH']
+            env_build["PATH"] = "/usr/local/cuda-10.1/bin" + ":" + os.environ['PATH']
+
             if not os.path.exists(self.build_temp):
                 os.makedirs(self.build_temp)
             subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-            subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
+            subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp, env=env_build)
         else:
             super().build_extension(ext)
+
 
 torch_spec = importlib.util.find_spec("torch")
 tf_spec = importlib.util.find_spec("tensorflow")
@@ -73,12 +85,14 @@ build_with_cuda = False
 if torch_spec is not None:
     packages.append('pydiffvg')
     import torch
+
     if torch.cuda.is_available():
         build_with_cuda = True
 if tf_spec is not None and sys.platform != 'win32':
     packages.append('pydiffvg_tensorflow')
     if not build_with_cuda:
         import tensorflow as tf
+
         if tf.test.is_gpu_available(cuda_only=True, min_cuda_compute_capability=None):
             build_with_cuda = True
 if len(packages) == 0:
@@ -88,11 +102,11 @@ if len(packages) == 0:
 if 'DIFFVG_CUDA' in os.environ:
     build_with_cuda = os.environ['DIFFVG_CUDA'] == '1'
 
-setup(name = 'diffvg',
-      version = '0.0.1',
-      install_requires = ["svgpathtools"],
-      description = 'Differentiable Vector Graphics',
-      ext_modules = [CMakeExtension('diffvg', '', build_with_cuda)],
-      cmdclass = dict(build_ext=Build, install=install),
-      packages = packages,
-      zip_safe = False)
+setup(name='diffvg',
+      version='0.0.1',
+      install_requires=["svgpathtools"],
+      description='Differentiable Vector Graphics',
+      ext_modules=[CMakeExtension('diffvg', '', build_with_cuda)],
+      cmdclass=dict(build_ext=Build, install=install),
+      packages=packages,
+      zip_safe=False)

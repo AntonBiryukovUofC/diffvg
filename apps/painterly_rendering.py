@@ -35,7 +35,7 @@ def main(args):
     canvas_width, canvas_height = target.shape[3], target.shape[2]
     num_paths = args.num_paths
     max_width = args.max_width
-    
+    max_segments = args.max_segments
     random.seed(1234)
     torch.manual_seed(1234)
     
@@ -43,7 +43,7 @@ def main(args):
     shape_groups = []
     if args.use_blob:
         for i in range(num_paths):
-            num_segments = random.randint(3, 5)
+            num_segments = random.randint(3, max_segments)
             num_control_points = torch.zeros(num_segments, dtype = torch.int32) + 2
             points = []
             p0 = (random.random(), random.random())
@@ -74,7 +74,7 @@ def main(args):
             shape_groups.append(path_group)
     else:
         for i in range(num_paths):
-            num_segments = random.randint(1, 3)
+            num_segments = random.randint(1, max_segments)
             num_control_points = torch.zeros(num_segments, dtype = torch.int32) + 2
             points = []
             p0 = (random.random(), random.random())
@@ -215,6 +215,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("target", help="target image path")
     parser.add_argument("--num_paths", type=int, default=512)
+    parser.add_argument("--max_segments", type=int, default=5)
     parser.add_argument("--max_width", type=float, default=2.0)
     parser.add_argument("--use_lpips_loss", dest='use_lpips_loss', action='store_true')
     parser.add_argument("--num_iter", type=int, default=500)
